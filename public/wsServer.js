@@ -4,24 +4,34 @@ const Redis = require('ioredis');
 const fs = require('fs');
 const path = require('path');
 
-// Change your Redis connection to use the cloud database URL if available
 const redisUrl = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
 const redis = new Redis(redisUrl); 
 
-// ... (keep the rest of your server code exactly the same) ...
+// 1. Create the HTTP server first
+const server = http.createServer((req, res) => {
+    const filePath = path.join(__dirname, 'index.html');
+    fs.readFile(filePath, (err, content) => {
+        if (err) {
+            res.writeHead(500, { 'Content-Type': 'text/plain' });
+            res.end('Error loading interface page.');
+        } else {
+            res.writeHead(200, { 'Content-Type': 'text/html' });
+            res.end(content, 'utf-8');
+        }
+    });
+});
 
-// Change your server listener to use the cloud platform's dynamic port
-const PORT = process.env.PORT || 3000;
-
+// 2. Attach the WebSocket server to the HTTP server instance
 const wss = new WebSocketServer({ server });
 
-// Helper function to generate a cool hacker handle
 function generateHackerName() {
     const prefixes = ['Ghost', 'Cipher', 'Shadow', 'Neon', 'Quantum', 'Vortex', 'Static', 'Proxy'];
     const randomPrefix = prefixes[Math.floor(Math.random() * prefixes.length)];
-    const randomNumber = Math.floor(100 + Math.random() * 900); // 3-digit number
+    const randomNumber = Math.floor(100 + Math.random() * 900);
     return `${randomPrefix}-${randomNumber}`;
 }
+
+// 3. Keep your exact wss.on('connection') logic below...
 
 wss.on('connection', async (socket) => {
     // 1. Assign a unique name directly to this connection instance
