@@ -119,7 +119,9 @@ to {
 	</div>
 
 	<script>
-	   const socket = new WebSocket(`ws://${window.location.host}`);
+		// This dynamic check fixes the insecure error on HTTPS platforms like Render
+		const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+		const socket = new WebSocket(`${protocol}//${window.location.host}`);
 	   const feed = document.getElementById('feed');
 	   const input = document.getElementById('messageInput');
 	   const btn = document.getElementById('sendBtn');
