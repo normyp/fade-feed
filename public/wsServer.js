@@ -4,7 +4,7 @@ const Redis = require('ioredis');
 const fs = require('fs');
 const path = require('path');
 
-// 1. Establish the Cloud or Local Redis Connection
+// 1. Establish the Local Redis Connection
 const redisUrl = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
 const redis = new Redis(redisUrl); 
 
@@ -25,21 +25,40 @@ const server = http.createServer((req, res) => {
 // 3. Attach the WebSocket engine to our server instance
 const wss = new WebSocketServer({ server });
 
-// Helper to generate unique handles
-function generateHackerName() {
-    const prefixes = ['Ghost', 'Cipher', 'Shadow', 'Neon', 'Quantum', 'Vortex', 'Static', 'Proxy'];
-    const randomPrefix = prefixes[Math.floor(Math.random() * prefixes.length)];
-    const randomNumber = Math.floor(100 + Math.random() * 900);
-    return `${randomPrefix}-${randomNumber}`;
+// A massive pool of emojis for maximum chaos
+const emojiPool = [
+    '😀','😁','😂','🤣','😃','😄','😅','😆','😉','😊','😋','😎','😍','😘',
+    '🥰','😗','😙','😚','☺️','🙂','🤗','🤩','🤔','🤨','😐','😑','😶','🙄',
+    '😏','😣','😥','😮','🤐','😯','😪','😫','🥱','😴','😌','😛','😜','🤪',
+    '😝','🤤','😒','😓','😔','😕','🙃','🤑','😲','☹️','🙁','😖','😞','😟',
+    '😤','😢','😭','😦','😧','😨','😩','🤯','😬','😰','😱','🥵','🥶','😳',
+    '🤪','😵','🥴','😠','😡','🤬','😷','🤒','🤕','🤢','🤮','🤧','😇','🥳',
+    '🥺','🤠','🤡','🤥','🤫','🤭','🧐','🤓','😈','👿','👹','👺','💀','👻',
+    '👽','🤖','💩','😺','😸','😹','😻','😼','😽','🙀','😿','😾','🐱','🐶',
+    '🦁','🐯','🦊','🦝','🐮','🐷','🐭','🐹','🐰','🐻','🐨','🐼','🐸','🦓',
+    '🦖','🦕','🐙','🦑','🦐','🦞','🦀','🐡','🐠','🐟','🐬','🐳','🐋','🦈',
+    '🐊','🐅','🐆','🦓','🦍','🦧','elephant','🦛','🦏','🐪','🐫','🦒','🦘','🦬',
+    '🚀','🛸','🛸','🔥','💥','⚡️','🌈','☀️','🎈','🎉','🎊','🍕','🍔','🍟'
+];
+
+// Helper to scramble text into random emojis
+function scrambleToEmojis(text) {
+    const cleanText = text.trim();
+    if (cleanText.length === 0) return '💨'; 
+
+    return Array.from(cleanText)
+        .map(() => emojiPool[Math.floor(Math.random() * emojiPool.length)])
+        .join('');
 }
 
 // 4. Handle incoming WebSocket client connections
 wss.on('connection', async (socket) => {
-    socket.username = generateHackerName();
-    console.log(`🔌 ${socket.username} connected. Sending active history...`);
+    console.log(`🔌 A user connected locally.`);
 
-    socket.send(`🤖 SYSTEM: Welcome. Your assigned identity is [${socket.username}]`);
+    // Send a clean, non-revealing greeting
+    socket.send(`🤖 SYSTEM: Welcome to the Emoji Chaos Chat.`);
 
+    // Fetch existing historical emoji streams from Redis
     try {
         const keys = await redis.keys('msg:*');
         if (keys.length > 0) {
@@ -53,13 +72,22 @@ wss.on('connection', async (socket) => {
         console.error('History fetch error:', err);
     }
 
+    // Process incoming message
     socket.on('message', async (rawData) => {
-        const messageText = `[${socket.username}]: ${rawData.toString()}`;
+        const rawString = rawData.toString();
+        
+        // Convert text into an equal length of random emojis
+        const emojiChaos = scrambleToEmojis(rawString);
+        
+        // Enforce the completely anonymous handle
+        const messageText = `[Anon]: ${emojiChaos}`;
         const messageId = `msg:${Date.now()}`;
 
         try {
+            // Save the scrambled emojis to Redis for 10 seconds
             await redis.setex(messageId, 10, messageText);
 
+            // Broadcast to all active tabs
             wss.clients.forEach((client) => {
                 if (client.readyState === WebSocket.OPEN) {
                     client.send(messageText);
@@ -71,8 +99,8 @@ wss.on('connection', async (socket) => {
     });
 });
 
-// 5. Fire up the server on the cloud-assigned port (CRUCIAL FIXED POSITION)
+// 5. Fire up the local server
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-    console.log(`🚀 Fade Feed running live on port ${PORT}`);
+    console.log(`🚀 Safe Emoji Feed running privately on http://localhost:${PORT}`);
 });
