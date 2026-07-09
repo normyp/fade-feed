@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Fade Feed - Anonymous Ephemeral Chat</title>
+<style>
+body {
+	background-color: #121212;
+	color: #e0e0e0;
+	font-family: 'Courier New', Courier, monospace;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	height: 100vh;
+	margin: 0;
+}
+
+#chat-container {
+	width: 500px;
+	background: #1e1e1e;
+	border: 1px solid #333;
+	border-radius: 6px;
+	box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+	display: flex;
+	flex-direction: column;
+}
+
+#feed {
+	height: 350px;
+	overflow-y: auto;
+	padding: 15px;
+	border-bottom: 1px solid #333;
+}
+
+.msg {
+	margin-bottom: 10px;
+	line-height: 1.4;
+	animation: fadeIn 0.3s ease-in;
+}
+
+.history {
+	color: #888;
+	font-style: italic;
+}
+
+.live {
+	color: #00ff66;
+}
+
+#input-area {
+	display: flex;
+	padding: 10px;
+}
+
+#messageInput {
+	flex-grow: 1;
+	background: #2a2a2a;
+	border: 1px solid #444;
+	color: #fff;
+	padding: 10px;
+	border-radius: 4px;
+	outline: none;
+}
+
+#sendBtn {
+	background: #00ff66;
+	color: #121212;
+	border: none;
+	padding: 0 15px;
+	margin-left: 10px;
+	border-radius: 4px;
+	cursor: pointer;
+	font-weight: bold;
+}
+
+#sendBtn:hover {
+	background: #00cc55;
+}
+
+@
+keyframes fadeIn {from { opacity:0;
+	
+}
+
+to {
+	opacity: 1;
+}
+
+}
+.history {
+	color: #888;
+	font-style: italic;
+}
+
+.live {
+	color: #00ff66;
+}
+
+.system {
+	color: #ffcc00;
+	font-weight: bold;
+} /* Added for system welcome text */
+</style>
+</head>
+<body>
+
+	<h2>⚡ FADE FEED ⚡</h2>
+	<p style="color: #666; font-size: 12px; margin-top: -10px;">Messages
+		self-destruct in 5 seconds</p>
+
+	<div id="chat-container">
+		<div id="feed"></div>
+		<div id="input-area">
+			<input type="text" id="messageInput"
+				placeholder="Type an anonymous message..." autocomplete="off">
+			<button id="sendBtn">SEND</button>
+		</div>
+	</div>
+
+	<script>
+	   const socket = new WebSocket(`ws://${window.location.host}`);
+	   const feed = document.getElementById('feed');
+	   const input = document.getElementById('messageInput');
+	   const btn = document.getElementById('sendBtn');
+	
+	   socket.onmessage = (event) => {
+		    const messageElement = document.createElement('div');
+		    messageElement.classList.add('msg');
+		    
+		    if (event.data.startsWith('🤖 SYSTEM:')) {
+		        messageElement.classList.add('system');
+		        messageElement.textContent = event.data;
+		        // System alerts can stay on the screen without disappearing
+		    } else if (event.data.startsWith('📜 [HISTORY]:')) {
+		        messageElement.classList.add('history');
+		        messageElement.textContent = event.data;
+		        
+		        setTimeout(() => {
+		            messageElement.remove();
+		        }, 10000);
+		    } else {
+		        messageElement.classList.add('live');
+		        messageElement.textContent = `📡 ${event.data}`; // Removed duplicated [LIVE] label
+
+		        setTimeout(() => {
+		            messageElement.style.transition = 'opacity 1s ease';
+		            messageElement.style.opacity = '0';
+		            setTimeout(() => { messageElement.remove(); }, 1000);
+		        }, 10000);
+		    }
+		    
+		    feed.appendChild(messageElement);
+		    feed.scrollTop = feed.scrollHeight;
+		};
+	
+	   function sendMessage() {
+	       if (input.value.trim() !== '') {
+	           socket.send(input.value);
+	           input.value = '';
+	       }
+	   }
+	
+	   btn.addEventListener('click', sendMessage);
+	   input.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+	</script>
+</body>
+</html>
