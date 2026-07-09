@@ -4,10 +4,11 @@ const Redis = require('ioredis');
 const fs = require('fs');
 const path = require('path');
 
+// 1. Establish the Cloud or Local Redis Connection
 const redisUrl = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
 const redis = new Redis(redisUrl); 
 
-// 1. Create the HTTP server first
+// 2. Create the core HTTP server to deliver index.html
 const server = http.createServer((req, res) => {
     const filePath = path.join(__dirname, 'index.html');
     fs.readFile(filePath, (err, content) => {
@@ -21,9 +22,10 @@ const server = http.createServer((req, res) => {
     });
 });
 
-// 2. Attach the WebSocket server to the HTTP server instance
+// 3. Attach the WebSocket engine to our server instance
 const wss = new WebSocketServer({ server });
 
+// Helper to generate unique handles
 function generateHackerName() {
     const prefixes = ['Ghost', 'Cipher', 'Shadow', 'Neon', 'Quantum', 'Vortex', 'Static', 'Proxy'];
     const randomPrefix = prefixes[Math.floor(Math.random() * prefixes.length)];
@@ -31,14 +33,11 @@ function generateHackerName() {
     return `${randomPrefix}-${randomNumber}`;
 }
 
-// 3. Keep your exact wss.on('connection') logic below...
-
+// 4. Handle incoming WebSocket client connections
 wss.on('connection', async (socket) => {
-    // 1. Assign a unique name directly to this connection instance
     socket.username = generateHackerName();
     console.log(`🔌 ${socket.username} connected. Sending active history...`);
 
-    // Let the user know what their assigned handle is
     socket.send(`🤖 SYSTEM: Welcome. Your assigned identity is [${socket.username}]`);
 
     try {
@@ -55,7 +54,6 @@ wss.on('connection', async (socket) => {
     }
 
     socket.on('message', async (rawData) => {
-        // 2. Format the message to include the client's custom username
         const messageText = `[${socket.username}]: ${rawData.toString()}`;
         const messageId = `msg:${Date.now()}`;
 
@@ -73,6 +71,8 @@ wss.on('connection', async (socket) => {
     });
 });
 
+// 5. Fire up the server on the cloud-assigned port (CRUCIAL FIXED POSITION)
+const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`🚀 Fade Feed running live on port ${PORT}`);
 });
